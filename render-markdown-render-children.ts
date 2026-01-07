@@ -19,7 +19,12 @@ export class HeatmapRenderChild extends MarkdownRenderChild {
 
     onload() {
         this.display();
+
+        // only need to update on data refresh
         this.registerEvent(this.plugin.app.workspace.on('easy-tracker:refresh', this.update.bind(this)));
+
+        // If the week start setting changes, need to re-render
+        this.registerEvent(this.plugin.app.workspace.on('easy-tracker-setting:refresh', this.display.bind(this)));
     }
 
     onunload() {
@@ -38,6 +43,7 @@ export class HeatmapRenderChild extends MarkdownRenderChild {
         cardTitle.createEl('div', { cls: 'easy-tracker-card-title', text: this.plugin.t('card.activityHistoryTitle') });
         const heatmapElement = cardTitle.createDiv({ cls: 'easy-tracker-year-calendar-heatmap' });
 
+        this.onunload()
         this.heatmap = new CalendarHeatmap(heatmapElement, data, {
             weekStart: this.plugin.settings.weekStart,
             view: "year",

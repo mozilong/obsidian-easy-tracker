@@ -29,6 +29,10 @@ export default class EasyTrackerPlugin extends Plugin {
         this.app.workspace.trigger('easy-tracker:refresh');
     }
 
+	public triggerSettingsRefresh(): void {
+		this.app.workspace.trigger('easy-tracker-setting:refresh');
+	}
+
 	// Get the active Markdown view or notify the user
 	private getActiveMarkdownView(): MarkdownView | null {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -140,6 +144,7 @@ export default class EasyTrackerPlugin extends Plugin {
 			name: this.t('command.insertCheckInComponent'),
 			editorCallback: (editor: Editor, _view: MarkdownView) => {
 				editor.replaceSelection([
+					'',
 					'```easy-tracker-daily-overview', '```',
 					'```easy-tracker-year-calendar-heatmap', '```',
 					'```easy-tracker-buttons',
@@ -159,6 +164,7 @@ export default class EasyTrackerPlugin extends Plugin {
 			name: this.t('command.insertSingleCheckInComponent'),
 			editorCallback: (editor: Editor, _view: MarkdownView) => {
 				editor.replaceSelection([
+					'',
 					'```easy-tracker-daily-overview', '```',
 					'```easy-tracker-year-calendar-heatmap', '```',
 					'```easy-tracker-buttons',
@@ -217,6 +223,6 @@ export default class EasyTrackerPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-        this.triggerRefresh();
+        this.triggerSettingsRefresh();
 	}
 }
