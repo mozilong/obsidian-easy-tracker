@@ -7,17 +7,17 @@ const en = {
 	'notice.editorUnavailable': 'Editor instance not available',
 	'notice.onlyCheckInInEditMode': 'Please switch to edit mode to check in.',
 	'notice.checkInTooFast': 'You are checking in too frequently. Please wait a moment before trying again.',
-	'card.goalTitle': 'My Goal',
+	'card.goalTitle': 'My goal',
 	'card.goalPlaceholder': 'Define your goal here!',
-	'card.activityHistoryTitle': 'Activity History',
+	'card.activityHistoryTitle': 'Activity history',
 	'card.buttonsTitle': 'How did you do today?',
 	'card.checkInCongrats': 'Another day done, you\'re making progress! 🎉',
 	'card.defaultButton': 'Button',
 	'command.insertCalendarHeatmap': 'Insert calendar heatmap',
-	'command.insertCheckInComponent': 'Insert Check-in Component',
-	'command.insertSingleCheckInComponent': 'Insert Single Check-in Component',
-	'command.insertDailyOverview': 'Insert Daily Overview',
-	'command.insertMyGoal': 'Insert My Goal',
+	'command.insertCheckInComponent': 'Insert check-in component',
+	'command.insertSingleCheckInComponent': 'Insert single check-in component',
+	'command.insertDailyOverview': 'Insert daily overview',
+	'command.insertMyGoal': 'Insert my goal',
 	'snippet.justABit': 'Just a bit',
 	'snippet.gotItDone': 'Got it done',
 	'snippet.didExtra': 'Did extra',
@@ -26,11 +26,6 @@ const en = {
 	'setting.weekStartDescription': 'Choose the first day of the week used by the calendar',
 	'setting.weekStart.monday': 'Monday',
 	'setting.weekStart.sunday': 'Sunday',
-	'setting.languageName': 'Language',
-	'setting.languageDescription': 'Choose how the plugin language is determined',
-	'setting.languageOption.system': 'Follow Obsidian language',
-	'setting.languageOption.en': 'English',
-	'setting.languageOption.zhCN': 'Simplified Chinese',
 	'overview.title': "Today's overview",
 	'overview.statusLabel': "Today's status",
 	'overview.statusValue.checkedIn': 'Checked in',
@@ -75,11 +70,6 @@ const zhCN: Record<LocaleKey, string> = {
 	'setting.weekStartDescription': '选择热力图中的每周起始日',
 	'setting.weekStart.monday': '周一',
 	'setting.weekStart.sunday': '周日',
-	'setting.languageName': '界面语言',
-	'setting.languageDescription': '选择插件语言的来源',
-	'setting.languageOption.system': '跟随 Obsidian 语言',
-	'setting.languageOption.en': '英文',
-	'setting.languageOption.zhCN': '简体中文',
 	'overview.title': '今日概览',
 	'overview.statusLabel': '今日状态',
 	'overview.statusValue.checkedIn': '已打卡',
@@ -135,8 +125,4 @@ export const resolveLocale = (preference: LanguageSetting, systemLocale?: string
 		return normalizeLocaleCode(systemLocale);
 	}
 	return preference;
-};
-
-export const isLanguageSetting = (value: unknown): value is LanguageSetting => {
-	return value === 'system' || value === 'en' || value === 'zh-CN';
 };

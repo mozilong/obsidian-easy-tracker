@@ -68,8 +68,7 @@ export const computeDailyOverview = (entries: Entry[]): DailyOverview => {
     return { hasEntries, hasToday, streak, lastMissing };
 }
 
-const buildDailyOverview = (container: HTMLElement, overview: DailyOverview, t: Translator): void => {
-	container.empty();
+export const buildDailyOverview = (container: HTMLElement, overview: DailyOverview, t: Translator): void => {
 	container.addClass('easy-tracker-card');
     container.setAttr('id', 'easy-tracker-daily-overview');
     container.createEl('div', { cls: 'easy-tracker-card-title', text: t('overview.title') });

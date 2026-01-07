@@ -1,15 +1,13 @@
-import { App, ButtonComponent, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, getLanguage } from 'obsidian';
-import CalendarHeatmap, { CalendarHeatmapOptions } from './calendar-heatmap/index.js';
-import { hasTodayEntry, insertTodayEntry, parseEntries } from './utils';
-import { computeDailyOverview, renderDailyOverview, updateDailyOverview } from './daily-overview';
-import { createTranslator, isLanguageSetting, LanguageSetting, LocaleCode, LocaleKey, resolveLocale, Translator } from './locales';
+import { Editor, MarkdownView, Notice, Plugin, getLanguage } from 'obsidian';
+import { hasTodayEntry, insertTodayEntry } from './utils';
+import { createTranslator, LocaleCode, LocaleKey, normalizeLocaleCode, Translator } from './locales';
+import { HeatmapRenderChild, ButtonsRenderChild, DailyOverviewRenderChild } from './render-markdown-render-children';
+import { EasyTrackerPluginSettings, DEFAULT_SETTINGS, EasyTrackerSettingTab } from './setting-tab';
 
 export default class EasyTrackerPlugin extends Plugin {
 	settings: EasyTrackerPluginSettings;
-	private heatmaps: CalendarHeatmap[] = [];
-	private overviewBlocks: HTMLElement[] = [];
-	private locale: LocaleCode = 'en';
-	private translator: Translator = createTranslator('en');
+	public locale: LocaleCode = 'en';
+	public translator: Translator = createTranslator('en');
 	private lastCheckInTime = 0;
 
 	public t(key: LocaleKey, vars?: Record<string, string | number>): string {
@@ -21,16 +19,18 @@ export default class EasyTrackerPlugin extends Plugin {
 	}
 
 	public refreshLocale(): void {
-		const resolved = resolveLocale(this.settings.language, this.getSystemLocale());
+		const resolved = normalizeLocaleCode(this.getSystemLocale());
 		this.locale = resolved;
 		this.translator = createTranslator(resolved);
-		this.updateOverviews();
+		this.triggerRefresh();
 	}
 
-	public async updateLanguage(language: LanguageSetting): Promise<void> {
-		this.settings.language = language;
-		await this.saveSettings();
-		this.refreshLocale();
+    public triggerRefresh(): void {
+        this.app.workspace.trigger('easy-tracker:refresh');
+    }
+
+	public triggerSettingsRefresh(): void {
+		this.app.workspace.trigger('easy-tracker-setting:refresh');
 	}
 
 	// Get the active Markdown view or notify the user
@@ -44,12 +44,12 @@ export default class EasyTrackerPlugin extends Plugin {
 	}
 
 	// Read the current note content safely
-	private getActiveContent(): string {
+	public getActiveContent(): string {
 		const view = this.getActiveMarkdownView();
 		return view ? (view.editor.getValue() || '') : '';
 	}
 
-	private isTodayCheckedIn(): boolean {
+	public isTodayCheckedIn(): boolean {
 		const view = this.getActiveMarkdownView();
 		if (!view) return false;
 
@@ -58,7 +58,7 @@ export default class EasyTrackerPlugin extends Plugin {
 	}
 
 	// Safely insert today's entry with a value (prevents duplicates)
-	private insertEntry(value: number): boolean {
+	public insertEntry(value: number): boolean {
 		const now = Date.now();
 		if (now - this.lastCheckInTime < 1000) {
 			new Notice(this.t('notice.checkInTooFast'));
@@ -88,36 +88,9 @@ export default class EasyTrackerPlugin extends Plugin {
 		insertTodayEntry(editor, value);
 
 		// update
-		this.updateHeatmaps();
-		this.updateOverviews();
+		this.triggerRefresh();
 
 		return true;
-	}
-
-	// Parse JSON options for the heatmap processor with fallback
-	private parseHeatmapOptions(source: string): Partial<CalendarHeatmapOptions> {
-		try {
-			return source.trim() ? JSON.parse(source) : {};
-		} catch {
-			console.warn('calendar-heatmap: unable to parse options JSON, using defaults');
-			return {};
-		}
-	}
-
-	private updateHeatmaps(): void {
-		const data = parseEntries(this.getActiveContent());
-		this.heatmaps.forEach(heatmap => heatmap.replaceData(data));
-	}
-
-	private updateOverviews(): void {
-		if (!this.overviewBlocks.length) return;
-
-		const entries = parseEntries(this.getActiveContent());
-		const overview = computeDailyOverview(entries);
-
-		for (const block of this.overviewBlocks) {
-			updateDailyOverview(block, overview, this.translator);
-		}
 	}
 
 	async onload() {
@@ -133,23 +106,8 @@ export default class EasyTrackerPlugin extends Plugin {
 		});
 
 		// Render a yearly calendar heatmap from entries in the current note
-		this.registerMarkdownCodeBlockProcessor('easy-tracker-year-calendar-heatmap', (source, el, _ctx) => {
-			const data = parseEntries(this.getActiveContent());
-			const options = this.parseHeatmapOptions(source);
-			const container = el.createDiv({ cls: 'easy-tracker-card' });
-			container.createEl('div', { cls: 'easy-tracker-card-title', text: this.t('card.activityHistoryTitle') });
-			const heatmapElement = container.createDiv({ cls: 'easy-tracker-year-calendar-heatmap' });
-
-			const heatmap = new CalendarHeatmap(heatmapElement, data, {
-				weekStart: this.settings.weekStart,
-				view: "year",
-				year: new Date().getFullYear(),
-				legend: false,
-				language: this.locale,
-				...options,
-			});
-
-			this.heatmaps.push(heatmap);
+		this.registerMarkdownCodeBlockProcessor('easy-tracker-year-calendar-heatmap', (source, el, ctx) => {
+			ctx.addChild(new HeatmapRenderChild(this, el, source));
 		});
 
 		// Render a group of buttons that insert today's entry with a value
@@ -159,44 +117,12 @@ export default class EasyTrackerPlugin extends Plugin {
 		//  Enough | 2
 		//  More   | 3
 		// ```
-		this.registerMarkdownCodeBlockProcessor("easy-tracker-buttons", (source, el) => {
-			const container = el.createDiv({ cls: "easy-tracker-card" });
-			container.setAttr('id', 'easy-tracker-buttons');
-			container.createEl('div', { cls: 'easy-tracker-card-title', text: this.t('card.buttonsTitle') });
-
-			if (this.isTodayCheckedIn()) {
-				container.createEl('div', { cls: 'easy-tracker-card-message', text: this.t('card.checkInCongrats') });
-				return;
-			}
-
-			const wrap = container.createDiv({ cls: "easy-tracker-button-group" });
-			const lines = source.split("\n").map(s => s.trim()).filter(Boolean);
-
-			for (const [index, line] of lines.entries()) {
-				const [text, val] = line.split('|').map(s => s.trim());
-				const btn = new ButtonComponent(wrap);
-				btn.buttonEl.addClass("btn");
-				btn.setButtonText(text || this.t('card.defaultButton'));
-				btn.onClick(() => {
-					const n = Number(val);
-					const valueToInsert = Number.isFinite(n) ? n : index + 1; // use provided number, fallback to index
-					const checkInResult = this.insertEntry(valueToInsert);
-
-					if (checkInResult) {
-						wrap.setCssStyles({ display: 'none' });
-						container.createEl('div', { cls: 'easy-tracker-card-message', text: this.t('card.checkInCongrats') });
-					}
-				});
-			}
+		this.registerMarkdownCodeBlockProcessor("easy-tracker-buttons", (source, el, ctx) => {
+			ctx.addChild(new ButtonsRenderChild(this, el, source));
 		});
 
-		this.registerMarkdownCodeBlockProcessor("easy-tracker-daily-overview", (_source, el) => {
-			const entries = parseEntries(this.getActiveContent());
-			const overview = computeDailyOverview(entries);
-			renderDailyOverview(el, overview, this.translator);
-
-			// Track this block for future updates
-			this.overviewBlocks.push(el);
+		this.registerMarkdownCodeBlockProcessor("easy-tracker-daily-overview", (_source, el, ctx) => {
+			ctx.addChild(new DailyOverviewRenderChild(this, el));
 		});
 
 		// Insert a bare heatmap block
@@ -218,6 +144,7 @@ export default class EasyTrackerPlugin extends Plugin {
 			name: this.t('command.insertCheckInComponent'),
 			editorCallback: (editor: Editor, _view: MarkdownView) => {
 				editor.replaceSelection([
+					'',
 					'```easy-tracker-daily-overview', '```',
 					'```easy-tracker-year-calendar-heatmap', '```',
 					'```easy-tracker-buttons',
@@ -237,6 +164,7 @@ export default class EasyTrackerPlugin extends Plugin {
 			name: this.t('command.insertSingleCheckInComponent'),
 			editorCallback: (editor: Editor, _view: MarkdownView) => {
 				editor.replaceSelection([
+					'',
 					'```easy-tracker-daily-overview', '```',
 					'```easy-tracker-year-calendar-heatmap', '```',
 					'```easy-tracker-buttons',
@@ -277,7 +205,6 @@ export default class EasyTrackerPlugin extends Plugin {
 		const migrated = typeof legacy !== 'undefined'
 			? (parseInt(String(legacy)) === 0 ? 0 : 1)
 			: undefined;
-		const language: LanguageSetting = isLanguageSetting(data?.language) ? data.language : DEFAULT_SETTINGS.language;
 		const overrides: Partial<EasyTrackerPluginSettings> = {};
 
 		if (typeof data?.weekStart === 'number') {
@@ -291,65 +218,11 @@ export default class EasyTrackerPlugin extends Plugin {
 		this.settings = {
 			...DEFAULT_SETTINGS,
 			...overrides,
-			language,
 		};
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-// Plugin settings: weekStart (0 = Sunday, 1 = Monday)
-interface EasyTrackerPluginSettings {
-	weekStart: 0 | 1;
-	language: LanguageSetting;
-}
-
-const DEFAULT_SETTINGS: EasyTrackerPluginSettings = {
-	weekStart: 1,
-	language: 'system',
-};
-
-class EasyTrackerSettingTab extends PluginSettingTab {
-	plugin: EasyTrackerPlugin;
-
-	constructor(app: App, plugin: EasyTrackerPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-
-			new Setting(containerEl)
-				.setName(this.plugin.t('setting.languageName'))
-				.setDesc(this.plugin.t('setting.languageDescription'))
-				.addDropdown(drop => {
-					drop.addOption('system', this.plugin.t('setting.languageOption.system'));
-					drop.addOption('en', this.plugin.t('setting.languageOption.en'));
-					drop.addOption('zh-CN', this.plugin.t('setting.languageOption.zhCN'));
-					drop.setValue(this.plugin.settings.language);
-					drop.onChange(async (value) => {
-						const next = isLanguageSetting(value) ? value : 'system';
-						await this.plugin.updateLanguage(next);
-						this.display();
-					});
-				});
-
-			new Setting(containerEl)
-				.setName(this.plugin.t('setting.weekStartName'))
-				.setDesc(this.plugin.t('setting.weekStartDescription'))
-				.addDropdown(drop => {
-					// 1 = Monday (default); 0 = Sunday
-					drop.addOption('1', this.plugin.t('setting.weekStart.monday'));
-					drop.addOption('0', this.plugin.t('setting.weekStart.sunday'));
-					drop.setValue(String(this.plugin.settings.weekStart));
-					drop.onChange(async (value) => {
-						this.plugin.settings.weekStart = value === '0' ? 0 : 1;
-						await this.plugin.saveSettings();
-					});
-				});
+        this.triggerSettingsRefresh();
 	}
 }

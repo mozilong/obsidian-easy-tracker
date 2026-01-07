@@ -20,7 +20,7 @@ Track progress toward a single goal directly inside one file—just insert the r
 
 1. Install and enable **Easy Tracker** in **Settings → Community plugins**.
 2. Open any note you want to use for tracking.
-3. Run the command palette and select `Insert Check-in Component` to add all modules at once.
+3. Run the command palette and select `Insert check-in component` to add all modules at once.
 4. Click a button each day to record your effort—no extra setup required.
 5. Optionally, use commands to insert or remove individual modules.
 
@@ -37,6 +37,6 @@ All data is stored as plain text in your note—easy to search, sync, or edit.
 
 - Edit button labels/values by changing the text inside the block.
 - Move or remove modules as you wish.
-- Adjust language and week start in **Settings → Easy Tracker**.
+- Adjust week start in **Settings → Easy Tracker**.
 
 No complex setup—just insert, click, and track.
