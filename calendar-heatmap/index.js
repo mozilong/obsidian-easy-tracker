@@ -290,7 +290,7 @@
 
     /**
      * Creates the legend element showing the color scale.
-     * Uses CSS classes ch-swatch and data-level attributes to allow CSS styling.
+     * Uses CSS class easy-tracker-heatmap-swatch and data-level attributes to allow CSS styling.
      */
     function createLegend(colors, legendTexts) {
         if (typeof document === 'undefined') return null;
