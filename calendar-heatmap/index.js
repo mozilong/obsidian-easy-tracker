@@ -275,7 +275,7 @@
     function createLabels(options, languageConfig, locale) {
         if (typeof document === 'undefined') return null;
         const labels = document.createElement('div');
-        labels.className = 'ch-labels';
+        labels.className = 'easy-tracker-heatmap-labels';
         const customWeekdays = Array.isArray(languageConfig.weekdays) && languageConfig.weekdays.length === 7 ? languageConfig.weekdays : null;
         const formatter = customWeekdays ? null : new Intl.DateTimeFormat(locale, { weekday: 'short' });
         for (let i = 0; i < 7; i += 1) {
@@ -296,13 +296,13 @@
         if (typeof document === 'undefined') return null;
         const scale = Array.isArray(colors) && colors.length ? colors : DEFAULT_COLORS;
         const legend = document.createElement('div');
-        legend.className = 'ch-legend';
+        legend.className = 'easy-tracker-heatmap-legend';
         const captionLow = document.createElement('span');
         captionLow.textContent = legendTexts.less;
         legend.appendChild(captionLow);
         scale.forEach((color, index) => {
             const swatch = document.createElement('span');
-            swatch.className = 'ch-swatch';
+            swatch.className = 'easy-tracker-heatmap-swatch';
             swatch.dataset.level = String(index);
             legend.appendChild(swatch);
         });
@@ -315,12 +315,12 @@
     function attachTooltip(root, formatter) {
         if (typeof document === 'undefined') return;
         let tooltip = document.createElement('div');
-        tooltip.className = 'ch-tooltip';
+        tooltip.className = 'easy-tracker-heatmap-tooltip';
         tooltip.style.display = 'none';
         document.body.appendChild(tooltip);
 
         const handleMouseMove = (event) => {
-            const target = event.target.closest('.ch-day');
+            const target = event.target.closest('.easy-tracker-heatmap-day');
             if (!target || !root.contains(target)) {
                 tooltip.style.display = 'none';
                 return;
@@ -388,16 +388,16 @@
             const maxValue = this.options.maxValue != null ? this.options.maxValue : values.reduce((acc, value) => Math.max(acc, value), 0);
 
             const root = document.createElement('div');
-            root.className = 'ch-root';
+            root.className = 'easy-tracker-heatmap-root';
 
             // Inject custom colors as CSS variables to override defaults in styles.css
             if (Array.isArray(this.options.colorScale)) {
                 this.options.colorScale.forEach((color, index) => {
-                    root.style.setProperty(`--ch-color-level-${index}`, color);
+                    root.style.setProperty(`--easy-tracker-heatmap-color-level-${index}`, color);
                 });
             }
-            root.style.setProperty('--ch-size', `${this.options.squareSize}px`);
-            root.style.setProperty('--ch-gap', `${this.options.squareGap}px`);
+            root.style.setProperty('--easy-tracker-heatmap-size', `${this.options.squareSize}px`);
+            root.style.setProperty('--easy-tracker-heatmap-gap', `${this.options.squareGap}px`);
 
             const gridWrapper = document.createElement('div');
             gridWrapper.style.display = 'flex';
@@ -408,7 +408,7 @@
             }
 
             const grid = document.createElement('div');
-            grid.className = 'ch-grid';
+            grid.className = 'easy-tracker-heatmap-grid';
 
             // Track week columns for grouping.
             let currentWeek = [];
@@ -440,7 +440,7 @@
                 const weekdayIndex = (dayDate.getDay() - weekStart + 7) % 7;
 
                 const dayNode = document.createElement('div');
-                dayNode.className = 'ch-day';
+                dayNode.className = 'easy-tracker-heatmap-day';
                 dayNode.dataset.level = String(level);
                 dayNode.dataset.value = String(value);
                 dayNode.dataset.date = key;
@@ -499,7 +499,7 @@
 
     function buildWeekColumn(days) {
         const column = document.createElement('div');
-        column.className = 'ch-week';
+        column.className = 'easy-tracker-heatmap-week';
         days.forEach((day) => {
             column.appendChild(day);
         });
