@@ -144,25 +144,6 @@
         return container;
     }
 
-    function ensureStyles() {
-        if (typeof document === 'undefined') return;
-        if (document.getElementById(STYLE_ID)) return;
-        const style = document.createElement('style');
-        style.id = STYLE_ID;
-        style.textContent = [
-            ".ch-root { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; --ch-size: 14px; --ch-gap: 2px; }",
-            '.ch-grid { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; column-gap: var(--ch-gap); }',
-            '.ch-week { display: grid; grid-template-rows: repeat(7, 1fr); row-gap: var(--ch-gap); }',
-            `.ch-day { width: var(--ch-size); height: var(--ch-size); box-sizing: border-box; border-radius: 2px; background-color: ${DEFAULT_COLORS[0]}; position: relative; }`,
-            `.ch-day[data-level="0"] { background-color: ${DEFAULT_COLORS[0]}; }`,
-            '.ch-tooltip { position: absolute; pointer-events: none; z-index: 9999; padding: 4px 6px; border-radius: 4px; font-size: 12px; background: rgba(17, 24, 39, 0.9); color: #fff; }',
-            '.ch-legend { display: flex; align-items: center; gap: 4px; font-size: 12px; margin-top: 8px; color: #555; }',
-            '.ch-legend .ch-swatch { display: inline-block; width: var(--ch-size); height: var(--ch-size); border-radius: 2px; }',
-            '.ch-labels { display: grid; grid-template-rows: repeat(7, var(--ch-size)); row-gap: var(--ch-gap); margin-right: 6px; font-size: 10px; color: #555; }'
-        ].join('\n');
-        document.head.appendChild(style);
-    }
-
     function dateKey(date) {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -170,20 +151,10 @@
         return `${year}-${month}-${day}`;
     }
 
-    function parseKey(input) {
-        if (input instanceof Date) {
-            return dateKey(input);
-        }
-        if (typeof input === 'string') {
-            const s = input.trim();
-            const d = new Date(s);
-            if (!Number.isNaN(d.getTime())) {
-                return dateKey(d);
-            }
-        }
-        return null;
-    }
-
+    /**
+     * Normalizes input data into a Map for fast lookup.
+     * Expects an array of objects with `date` (or `day`, `dateString`) and `value` (or `count`).
+     */
     function normalizeData(data) {
         // Collapse incoming records into a date -> value map for quicker lookup during rendering.
         const map = new Map();
@@ -221,6 +192,10 @@
         return addDays(start, 6);
     }
 
+    /**
+     * Calculates the time range (start/end dates) based on the current view type.
+     * Supports: 'year', 'month', 'week', and 'recent' (rolling days).
+     */
     function generateRange(view, options) {
         const weekStart = options.weekStart % 7;
         let start;
@@ -265,6 +240,10 @@
         return { start, end, alignedStart, alignedEnd, dates };
     }
 
+    /**
+     * Determines the color level (0-4) for a given value relative to the maxValue.
+     * Can handle custom color functions or arrays.
+     */
     function computeColor(value, maxValue, colors) {
         const scale = Array.isArray(colors) && colors.length ? colors : DEFAULT_COLORS;
         if (typeof colors === 'function') {
@@ -309,6 +288,10 @@
         return labels;
     }
 
+    /**
+     * Creates the legend element showing the color scale.
+     * Uses CSS classes ch-swatch and data-level attributes to allow CSS styling.
+     */
     function createLegend(colors, legendTexts) {
         if (typeof document === 'undefined') return null;
         const scale = Array.isArray(colors) && colors.length ? colors : DEFAULT_COLORS;
@@ -317,10 +300,10 @@
         const captionLow = document.createElement('span');
         captionLow.textContent = legendTexts.less;
         legend.appendChild(captionLow);
-        scale.forEach((color) => {
+        scale.forEach((color, index) => {
             const swatch = document.createElement('span');
             swatch.className = 'ch-swatch';
-            swatch.style.backgroundColor = color;
+            swatch.dataset.level = String(index);
             legend.appendChild(swatch);
         });
         const captionHigh = document.createElement('span');
@@ -374,13 +357,11 @@
             this.options = Object.assign({}, DEFAULT_OPTIONS, options);
             this.data = normalizeData(data);
             this.tooltipDisposer = null;
-            ensureStyles();
             this.render();
         }
 
         setOptions(options = {}) {
             this.options = Object.assign({}, this.options, options);
-            ensureStyles();
             this.render();
         }
 
@@ -408,6 +389,13 @@
 
             const root = document.createElement('div');
             root.className = 'ch-root';
+
+            // Inject custom colors as CSS variables to override defaults in styles.css
+            if (Array.isArray(this.options.colorScale)) {
+                this.options.colorScale.forEach((color, index) => {
+                    root.style.setProperty(`--ch-color-level-${index}`, color);
+                });
+            }
             root.style.setProperty('--ch-size', `${this.options.squareSize}px`);
             root.style.setProperty('--ch-gap', `${this.options.squareGap}px`);
 
@@ -430,6 +418,7 @@
             const today = new Date();
             const weekStart = this.options.weekStart % 7;
 
+            // Iterate over every day in the range to build the grid cells
             for (let index = 0; index < dates.length; index += 1) {
                 const dayDate = dates[index];
                 const key = dateKey(dayDate);
@@ -452,7 +441,6 @@
 
                 const dayNode = document.createElement('div');
                 dayNode.className = 'ch-day';
-                dayNode.style.backgroundColor = color;
                 dayNode.dataset.level = String(level);
                 dayNode.dataset.value = String(value);
                 dayNode.dataset.date = key;
