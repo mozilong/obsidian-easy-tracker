@@ -43,7 +43,7 @@ You can specify a folder to limit the heatmap to notes in that folder only:
   "folder": "Daily Notes"
 }
 ```
-```
+````
 
 If no folder is specified, the heatmap will scan all notes in your vault.
 
@@ -51,26 +51,26 @@ If no folder is specified, the heatmap will scan all notes in your vault.
 One-click logging with customizable labels and values. The currently selected value is highlighted, and you can update it anytime if editing is enabled.
 
 **Example:**
-```markdown
 ```easy-tracker-buttons
   Just a bit | 1
   Got it done | 2
   Did extra | 3
 ```
-```
+````
+````
 
 ### Goal Checklist (NEW)
 An interactive checklist for tracking multiple goals. Check off items as you complete them—state is saved to frontmatter.
 
 **Example:**
-```markdown
 ```easy-tracker-goal-checklist
 Read for 30 minutes
 Exercise
 Learn something new
 Maintain good sleep schedule
 ```
-```
+````
+````
 
 ### Goal Card
 Displays a single motivational message or long-term goal description.
@@ -79,9 +79,9 @@ Displays a single motivational message or long-term goal description.
 Shows the number of notes created on the current note's date. This module automatically displays the count for the date specified in the note's frontmatter, making it useful for tracking daily productivity.
 
 **Example:**
-```markdown
 ```easy-tracker-note-counter
 ```
+````
 ```
 
 The counter will show how many notes were created on that specific day.
